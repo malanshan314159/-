@@ -1,0 +1,183 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>拥抱徐巫婆倒计时</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') no-repeat center center fixed;
+      background-size: cover;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Arial', sans-serif;
+      position: relative;
+      overflow: hidden;
+    }
+    .countdown-container {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      border-radius: 1rem;
+      padding: 2rem;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      z-index: 10;
+    }
+    .countdown-item {
+      display: inline-block;
+      margin: 0 1rem;
+      font-size: 1.5rem;
+      color: white;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+    .countdown-item span {
+      display: block;
+      font-size: 3rem;
+      font-weight: bold;
+    }
+    .bubble {
+      position: absolute;
+      color: rgba(255, 182, 193, 0.7);
+      font-size: 1.5rem;
+      animation: float 8s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes float {
+      0% {
+        transform: translateY(100vh) scale(0.8);
+        opacity: 0.8;
+      }
+      100% {
+        transform: translateY(-100vh) translateX(20px) scale(1.2);
+        opacity: 0;
+      }
+    }
+    @media (max-width: 640px) {
+      .countdown-item {
+        font-size: 1rem;
+        margin: 0 0.5rem;
+      }
+      .countdown-item span {
+        font-size: 2rem;
+      }
+      .countdown-container {
+        padding: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="countdown-container">
+    <h1 class="text-4xl font-bold text-white mb-8">拥抱徐巫婆倒计时</h1>
+    <div id="countdown" class="text-white">
+      <div class="countdown-item">
+        <span id="days">0</span>
+        天
+      </div>
+      <div class="countdown-item">
+        <span id="hours">0</span>
+        小时
+      </div>
+      <div class="countdown-item">
+        <span id="minutes">0</span>
+        分钟
+      </div>
+      <div class="countdown-item">
+        <span id="seconds">0</span>
+        秒
+      </div>
+    </div>
+    <p id="message" class="text-2xl text-white mt-8 hidden">拥抱开始啦！</p>
+  </div>
+
+  <script>
+    // 设置目标日期和时间为 2025-09-20 21:10:00 (香港时区)
+    const targetDate = new Date('2025-09-20T21:10:00').getTime();
+
+    // 每秒更新倒计时
+    const countdown = setInterval(() => {
+      const now = new Date().getTime();
+      const distance = targetDate - now;
+
+      // 计算天、小时、分钟、秒
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+      // 更新页面显示
+      document.getElementById('days').textContent = days;
+      document.getElementById('hours').textContent = hours;
+      document.getElementById('minutes').textContent = minutes;
+      document.getElementById('seconds').textContent = seconds;
+
+      // 倒计时结束处理
+      if (distance < 0) {
+        clearInterval(countdown);
+        document.getElementById('countdown').classList.add('hidden');
+        document.getElementById('message').classList.remove('hidden');
+      }
+    }, 1000);
+
+    // 生成漂浮的心形泡泡
+    function createBubble() {
+      const bubble = document.createElement('div');
+      bubble.classList.add('bubble');
+      bubble.innerHTML = '❤️';
+      bubble.style.left = Math.random() * 100 + 'vw';
+      bubble.style.animationDuration = Math.random() * 4 + 6 + 's';
+      document.body.appendChild(bubble);
+
+      // 移除泡泡以避免内存泄漏
+      setTimeout(() => {
+        bubble.remove();
+      }, 8000);
+    }
+
+    // 每隔0.5秒生成一个泡泡
+    setInterval(createBubble, 500);
+  </script>
+</body>
+</html>
